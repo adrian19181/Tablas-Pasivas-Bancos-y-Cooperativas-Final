@@ -456,7 +456,13 @@ def filtrar_columnas_subtabla(subtabla, producto_seleccionado):
           cols_deseadas.append(idx)
 
       nuevos_headers = [headers[i] for i in cols_deseadas]
-      nuevas_rows = [[r[i] for i in cols_deseadas] for r in subtabla["rows"]]
+
+      # Filtrar únicamente las filas de 'Monto' e 'Interés'
+      nuevas_rows = []
+      for r in subtabla["rows"]:
+        detalle_val = str(r[0]).strip().upper() if pd.notna(r[0]) else ""
+        if detalle_val in ["MONTO", "INTERÉS", "INTERES"]:
+          nuevas_rows.append([r[i] for i in cols_deseadas])
 
       return {
           "titulo": subtabla["titulo"],
