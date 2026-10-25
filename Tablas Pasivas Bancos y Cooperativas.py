@@ -406,6 +406,47 @@ def clasificar_producto(subtabla):
   return list(set(tipos))
 
 
+def filtrar_columnas_subtabla(subtabla, producto_seleccionado):
+  titulo_upper = str(subtabla.get("titulo", "")).upper()
+  headers = subtabla.get("headers", [])
+
+  if "TASAS DE INTERÉS POR PRODUCTOS DE AHORRO" in titulo_upper:
+    if producto_seleccionado == "Ahorros Programados":
+      cols_deseadas = [0]
+      for idx, h in enumerate(headers):
+        if idx > 0 and any(
+            k in str(h).upper() for k in ["FONDOJEP", "INTELIJEP"]
+        ):
+          cols_deseadas.append(idx)
+
+      nuevos_headers = [headers[i] for i in cols_deseadas]
+      nuevas_rows = [[r[i] for i in cols_deseadas] for r in subtabla["rows"]]
+
+      return {
+          "titulo": subtabla["titulo"],
+          "headers": nuevos_headers,
+          "rows": nuevas_rows,
+      }
+    elif producto_seleccionado == "Cuentas de Ahorros":
+      cols_deseadas = [0]
+      for idx, h in enumerate(headers):
+        if idx > 0 and not any(
+            k in str(h).upper() for k in ["FONDOJEP", "INTELIJEP"]
+        ):
+          cols_deseadas.append(idx)
+
+      nuevos_headers = [headers[i] for i in cols_deseadas]
+      nuevas_rows = [[r[i] for i in cols_deseadas] for r in subtabla["rows"]]
+
+      return {
+          "titulo": subtabla["titulo"],
+          "headers": nuevos_headers,
+          "rows": nuevas_rows,
+      }
+
+  return subtabla
+
+
 def formatear_encabezado(header_text):
   header_text = re.sub(
       r"([\$\d\.,\w]+)\s*-\s*([\$\d\.,\w]+)",
@@ -490,7 +531,10 @@ if institucion_seleccionada and institucion_seleccionada in mapa_instituciones:
         or producto_seleccionado in tipos
         or institucion_seleccionada == "Tasas Referenciales"
     ):
-      tablas_filtradas.append(st_item)
+      subtabla_filtrada = filtrar_columnas_subtabla(
+          st_item, producto_seleccionado
+      )
+      tablas_filtradas.append(subtabla_filtrada)
 
   if tablas_filtradas:
     for st_item in tablas_filtradas:
