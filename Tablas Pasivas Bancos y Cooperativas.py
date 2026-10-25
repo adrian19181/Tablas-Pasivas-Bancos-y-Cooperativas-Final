@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import sys
 import pandas as pd
 import requests
@@ -60,7 +61,7 @@ st.markdown(
         font-size: 12px;
     }
     
-    /* Encabezados Fijos (Sticky Top) con ajuste multilínea (2-3 líneas) */
+    /* Encabezados Fijos (Sticky Top) */
     table.custom-table th {
         position: sticky !important;
         top: 0 !important;
@@ -71,9 +72,8 @@ st.markdown(
         padding: 8px 6px;
         text-align: center;
         white-space: normal !important;
-        word-wrap: break-word !important;
-        min-width: 90px !important;
-        max-width: 110px !important;
+        word-break: normal !important;
+        min-width: 110px !important;
         border-bottom: 1px solid #cbd5e1;
         border-right: 1px solid #cbd5e1;
     }
@@ -257,6 +257,22 @@ def clasificar_producto(titulo):
   return "Otros"
 
 
+def formatear_encabezado(header_text):
+  # Mantiene los rangos numéricos indivisibles en una sola línea mediante un span no-separable
+  header_text = re.sub(
+      r"([\$\d\.,\w]+)\s*-\s*([\$\d\.,\w]+)",
+      r'<span style="white-space: nowrap;">\1&#8209;\2</span>',
+      header_text,
+  )
+  header_text = re.sub(
+      r"(De\s+[\$\d\.,]+)\s+(a\s+[\$\d\.,]+)",
+      r'<span style="white-space: nowrap;">\1&nbsp;\2</span>',
+      header_text,
+      flags=re.IGNORECASE,
+  )
+  return header_text
+
+
 def renderizar_tabla_html(subtabla):
   html = f'<div class="table-card">'
   html += f'<div class="table-title">{subtabla["titulo"]}</div>'
@@ -265,7 +281,8 @@ def renderizar_tabla_html(subtabla):
 
   html += "<thead><tr>"
   for idx, header in enumerate(subtabla["headers"]):
-    html += f"<th>{header}</th>"
+    header_fmt = formatear_encabezado(header)
+    html += f"<th>{header_fmt}</th>"
   html += "</tr></thead>"
 
   html += "<tbody>"
