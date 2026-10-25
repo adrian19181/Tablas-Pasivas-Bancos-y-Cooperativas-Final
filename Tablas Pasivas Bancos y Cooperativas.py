@@ -156,6 +156,58 @@ def cargar_datos_excel(url):
   return pd.read_excel(excel_file, sheet_name=None, header=None)
 
 
+def detectar_unidad_primera_columna(header_original, rows):
+  h_str = str(header_original).strip()
+
+  if re.search(
+      r"\((?:\$|días|dias|meses|mes|Días|Dias|Meses)\)", h_str, re.IGNORECASE
+  ):
+    return h_str
+
+  vals = [
+      str(r[0]).strip().upper() for r in rows if len(r) > 0 and pd.notna(r[0])
+  ]
+  texto_unido = " ".join(vals)
+  h_upper = h_str.upper()
+
+  if (
+      "$" in texto_unido
+      or "DÓLAR" in texto_unido
+      or "DOLAR" in texto_unido
+      or "$" in h_upper
+      or "DÓLAR" in h_upper
+      or "DOLAR" in h_upper
+      or "MONTO" in h_upper
+      or "SALDO" in h_upper
+      or "RANGOS" == h_upper
+  ):
+    unit = "($)"
+  elif "MES" in texto_unido or "MESES" in h_upper:
+    unit = "(Meses)"
+  elif (
+      "DÍA" in texto_unido
+      or "DIA" in texto_unido
+      or "DÍA" in h_upper
+      or "DIA" in h_upper
+      or "PLAZO" in h_upper
+      or "DESDE" in h_upper
+  ):
+    unit = "(Días)"
+  elif "RANGO" in h_upper:
+    unit = "($)"
+  else:
+    unit = ""
+
+  if any(k in h_upper for k in ["DÍAS", "DIAS", "DÓLARES", "DOLARES", "MESES"]):
+    if ("DÓLARES" in h_upper or "DOLARES" in h_upper) and "($)" not in h_str:
+      return f"{h_str} ($)"
+    return h_str
+
+  if unit and unit.lower() not in h_str.lower():
+    return f"{h_str} {unit}"
+  return h_str
+
+
 def extraer_subtablas(df_raw):
   num_cols = df_raw.shape[1]
   col_blocks = []
@@ -218,6 +270,11 @@ def extraer_subtablas(df_raw):
           "headers": nuevos_headers,
           "rows": nuevas_rows,
       }
+
+    # Asignación automática de unidad entre paréntesis al encabezado de la primera columna
+    subtabla["headers"][0] = detectar_unidad_primera_columna(
+        subtabla["headers"][0], subtabla["rows"]
+    )
 
     subtablas.append(subtabla)
   return subtablas
