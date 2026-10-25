@@ -247,7 +247,7 @@ def extraer_subtablas(df_raw):
 
     subtabla = {"titulo": titulo, "headers": headers, "rows": rows}
 
-    # Unificación de las columnas 'Plazo desde' y 'Plazo hasta' en una sola columna fija 'Rango de Días'
+    # Unificación Produbanco: 'Plazo desde' y 'Plazo hasta'
     if (
         len(subtabla["headers"]) >= 2
         and "PLAZO DESDE" in str(subtabla["headers"][0]).upper()
@@ -271,7 +271,34 @@ def extraer_subtablas(df_raw):
           "rows": nuevas_rows,
       }
 
-    # Asignación automática de unidad entre paréntesis al encabezado de la primera columna
+    # Depuración de columna redundante inicial (Ej. Jardín Azuayo 'Tipos de Ahorros')
+    headers_clean = subtabla["headers"]
+    rows_clean = subtabla["rows"]
+
+    if len(headers_clean) > 1 and str(headers_clean[0]).strip().lower() in [
+        "tipos de ahorros",
+        "tipo de ahorro",
+        "tipos de ahorro",
+    ]:
+      headers_clean = headers_clean[1:]
+      rows_clean = [r[1:] for r in rows_clean]
+    elif len(headers_clean) > 1 and len(rows_clean) > 0:
+      val0_set = set(
+          str(r[0]).strip().lower()
+          for r in rows_clean
+          if len(r) > 0 and pd.notna(r[0])
+      )
+      if (
+          len(val0_set) == 1
+          and list(val0_set)[0] == subtabla["titulo"].strip().lower()
+      ):
+        headers_clean = headers_clean[1:]
+        rows_clean = [r[1:] for r in rows_clean]
+
+    subtabla["headers"] = headers_clean
+    subtabla["rows"] = rows_clean
+
+    # Detectar y asignar automáticamente unidad ($), (Días), (Meses)
     subtabla["headers"][0] = detectar_unidad_primera_columna(
         subtabla["headers"][0], subtabla["rows"]
     )
