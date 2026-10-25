@@ -9,7 +9,7 @@ import streamlit as st
 # Configuración inicial de la página
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-# Estilos CSS personalizados para tablas móviles con inmovilización 2D Sticky y ajuste de menú para teclado móvil
+# Estilos CSS personalizados para tablas móviles con inmovilización 2D Sticky y ajuste de menú desplegable
 st.markdown(
     """
     <style>
@@ -388,8 +388,9 @@ def clasificar_producto(subtabla):
       "REFERENCIAL",
   ]
 
-  # Evaluamos Ahorro Programado (incluye FondoJEP y columnas específicas)
-  if any(k in texto_completo for k in kw_prog):
+  # Evaluamos Ahorro Programado
+  es_prog = any(k in texto_completo for k in kw_prog)
+  if es_prog:
     tipos.append("Ahorros Programados")
 
   # Evaluamos Plazos Fijos
@@ -409,7 +410,14 @@ def clasificar_producto(subtabla):
             "CERTIFICADO",
         ]
     ) and not any(k in headers_upper for k in ["CTA", "CUENTA", "FONDOJEP"])
-    if not es_plazo_puro:
+
+    # Si es una tabla dedicada exclusivamente a ahorro programado (y no la multifunción de JEP), no incluir en Cuentas de Ahorros
+    es_prog_puro = (
+        es_prog
+        and "TASAS DE INTERÉS POR PRODUCTOS DE AHORRO" not in titulo_upper
+    )
+
+    if not es_plazo_puro and not es_prog_puro:
       tipos.append("Cuentas de Ahorros")
 
   if not tipos:
