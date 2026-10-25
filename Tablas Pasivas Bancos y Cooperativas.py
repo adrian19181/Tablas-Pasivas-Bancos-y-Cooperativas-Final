@@ -193,7 +193,33 @@ def extraer_subtablas(df_raw):
     df_sub = df_raw.iloc[2:, block].dropna(how="all")
     rows = df_sub.values.tolist()
 
-    subtablas.append({"titulo": titulo, "headers": headers, "rows": rows})
+    subtabla = {"titulo": titulo, "headers": headers, "rows": rows}
+
+    # Unificación de las columnas 'Plazo desde' y 'Plazo hasta' en una sola columna fija 'Rango de Días'
+    if (
+        len(subtabla["headers"]) >= 2
+        and "PLAZO DESDE" in str(subtabla["headers"][0]).upper()
+        and "PLAZO HASTA" in str(subtabla["headers"][1]).upper()
+    ):
+      nuevos_headers = ["Rango de Días"] + subtabla["headers"][2:]
+      nuevas_rows = []
+      for r in subtabla["rows"]:
+        p_desde = str(r[0]).replace(".0", "") if pd.notna(r[0]) else ""
+        p_hasta = str(r[1]).replace(".0", "") if pd.notna(r[1]) else ""
+        rango_str = (
+            f"De {p_desde} a {p_hasta} días"
+            if p_desde and p_hasta
+            else p_desde or p_hasta
+        )
+        nuevas_rows.append([rango_str] + r[2:])
+
+      subtabla = {
+          "titulo": subtabla["titulo"],
+          "headers": nuevos_headers,
+          "rows": nuevas_rows,
+      }
+
+    subtablas.append(subtabla)
   return subtablas
 
 
