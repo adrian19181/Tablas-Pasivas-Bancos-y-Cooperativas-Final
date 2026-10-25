@@ -4,9 +4,12 @@ import sys
 import pandas as pd
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
+# Configuración inicial de la página
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
+# Estilos CSS personalizados para tablas móviles con inmovilización 2D Sticky
 st.markdown(
     """
     <style>
@@ -19,9 +22,137 @@ st.markdown(
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
+    
+    /* Tarjeta y Contenedor de Tabla */
+    .table-card {
+        margin-bottom: 1.5rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .table-title {
+        background-color: #1e293b;
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 13px;
+        text-align: center;
+        padding: 8px 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 420px;
+        padding: 0px !important;
+        margin: 0px !important;
+    }
+    
+    /* Tabla Base */
+    table.custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 12px;
+    }
+    
+    /* Encabezados Fijos (Sticky Top) */
+    table.custom-table th {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 20 !important;
+        background-color: #334155 !important;
+        color: #ffffff !important;
+        font-weight: bold;
+        padding: 8px 10px;
+        text-align: center;
+        white-space: nowrap;
+        border-bottom: 1px solid #cbd5e1;
+        border-right: 1px solid #cbd5e1;
+    }
+    
+    /* Esquina Superior Izquierda Fija (Sticky Top & Left) */
+    table.custom-table th:first-child {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 50 !important;
+        background-color: #1e293b !important;
+        width: 125px !important;
+        min-width: 125px !important;
+        max-width: 125px !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        text-align: center;
+    }
+    
+    /* Celdas de Datos Normales */
+    table.custom-table td {
+        position: static !important;
+        z-index: auto !important;
+        padding: 7px 10px;
+        text-align: center;
+        border-bottom: 1px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    
+    /* Primera Columna Fija (Sticky Left) */
+    table.custom-table td.lbl-sticky-col {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 30 !important;
+        font-weight: bold;
+        text-align: left;
+        width: 125px !important;
+        min-width: 125px !important;
+        max-width: 125px !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        background-clip: padding-box !important;
+        box-shadow: 2px 0 5px -2px rgba(0,0,0,0.2) !important;
+    }
+    
+    /* Filas Alternadas */
+    .row-even td {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+    }
+    .row-odd td {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+    }
+    .row-even td.lbl-sticky-col {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+    }
+    .row-odd td.lbl-sticky-col {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
+)
+
+# Inyección de JS para sobreescritura automática en campos de entrada
+components.html(
+    """
+    <script>
+    const doc = window.parent.document;
+    doc.addEventListener('focusin', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+            e.target.select();
+        }
+    });
+    </script>
+    """,
+    height=0,
+    width=0,
 )
 
 st.title("Tablas Pasivas Bancos y coopertivas")
@@ -36,12 +167,124 @@ URL_EXCEL_DRIVE = "https://docs.google.com/spreadsheets/d/1kiwAirOeaVEYxOdRP3FWB
 def cargar_datos_excel(url):
   response = requests.get(url)
   excel_file = io.BytesIO(response.content)
-  return pd.read_excel(excel_file, sheet_name=None)
+  return pd.read_excel(excel_file, sheet_name=None, header=None)
 
 
+def extraer_subtablas(df_raw):
+  num_cols = df_raw.shape[1]
+  col_blocks = []
+  current_block = []
+
+  for c in range(num_cols):
+    val0 = df_raw.iloc[0, c]
+    val1 = df_raw.iloc[1, c]
+    is_val = pd.notna(val0) or pd.notna(val1)
+    if is_val:
+      current_block.append(c)
+    else:
+      if current_block:
+        col_blocks.append(current_block)
+        current_block = []
+  if current_block:
+    col_blocks.append(current_block)
+
+  subtablas = []
+  for block in col_blocks:
+    titulos = [
+        str(df_raw.iloc[0, c]).strip()
+        for c in block
+        if pd.notna(df_raw.iloc[0, c])
+    ]
+    titulo = titulos[0] if titulos else "TABLA DE DATOS"
+    headers = [
+        (
+            str(df_raw.iloc[1, c]).strip()
+            if pd.notna(df_raw.iloc[1, c])
+            else f"Col {i+1}"
+        )
+        for i, c in enumerate(block)
+    ]
+    df_sub = df_raw.iloc[2:, block].dropna(how="all")
+    rows = df_sub.values.tolist()
+
+    subtablas.append({"titulo": titulo, "headers": headers, "rows": rows})
+  return subtablas
+
+
+def clasificar_producto(titulo):
+  t_upper = titulo.upper()
+  kw_plazo = [
+      "PLAZO",
+      "PÓLIZA",
+      "POLIZA",
+      "CERTIFICADO",
+      "ACUMULACIÓN",
+      "ACUMULACION",
+      "INVERSION",
+  ]
+  kw_prog = [
+      "PROGRAMADO",
+      "FLEXIAHORRO",
+      "FONDO AHORRO",
+      "METAHORRO",
+      "FUTURO SEGURO",
+      "CHANCHITO",
+      "CESANTÍA",
+      "CESANTIA",
+  ]
+  kw_ahorro = [
+      "AHORRO",
+      "VISTA",
+      "DIGITAL",
+      "CUENTA",
+      "SOCIOS",
+      "ANGELITOS",
+      "RENTABILIDAD",
+      "CTA",
+      "OTRAS CUENTAS",
+      "REFERENCIAL",
+  ]
+
+  if any(k in t_upper for k in kw_plazo):
+    return "Plazos Fijos"
+  elif any(k in t_upper for k in kw_prog):
+    return "Ahorros Programados"
+  elif any(k in t_upper for k in kw_ahorro):
+    return "Cuentas de Ahorros"
+  return "Otros"
+
+
+def renderizar_tabla_html(subtabla):
+  html = f'<div class="table-card">'
+  html += f'<div class="table-title">{subtabla["titulo"]}</div>'
+  html += '<div class="table-container">'
+  html += '<table class="custom-table">'
+
+  html += "<thead><tr>"
+  for idx, header in enumerate(subtabla["headers"]):
+    html += f"<th>{header}</th>"
+  html += "</tr></thead>"
+
+  html += "<tbody>"
+  for r_idx, row in enumerate(subtabla["rows"]):
+    row_class = "row-even" if r_idx % 2 == 0 else "row-odd"
+    html += f'<tr class="{row_class}">'
+    for c_idx, val in enumerate(row):
+      cell_val = str(val) if pd.notna(val) else ""
+      if c_idx == 0:
+        html += f'<td class="lbl-sticky-col">{cell_val}</td>'
+      else:
+        html += f"<td>{cell_val}</td>"
+    html += "</tr>"
+  html += "</tbody></table></div></div>"
+  return html
+
+
+# Carga de datos
 datos_excel = cargar_datos_excel(URL_EXCEL_DRIVE)
 lista_instituciones = list(datos_excel.keys())
 
+# Filtros de entrada
 institucion_seleccionada = st.selectbox(
     "Selecciona o escribe la Institución:",
     options=lista_instituciones,
@@ -52,6 +295,23 @@ producto_seleccionado = st.selectbox(
     "Selecciona el Tipo de Producto:",
     options=["Todos", "Plazos Fijos", "Ahorros Programados", "Cuentas de Ahorros"],
 )
+
+# Renderizado de tablas
+if institucion_seleccionada in datos_excel:
+  df_hoja = datos_excel[institucion_seleccionada]
+  subtablas = extraer_subtablas(df_hoja)
+
+  tablas_filtradas = []
+  for st_item in subtablas:
+    tipo = clasificar_producto(st_item["titulo"])
+    if producto_seleccionado == "Todos" or producto_seleccionado == tipo:
+      tablas_filtradas.append(st_item)
+
+  if tablas_filtradas:
+    for st_item in tablas_filtradas:
+      st.markdown(renderizar_tabla_html(st_item), unsafe_allow_html=True)
+  else:
+    st.info("No se encontraron tablas para el tipo de producto seleccionado.")
 
 if __name__ == "__main__":
   if "streamlit" not in sys.argv[0]:
