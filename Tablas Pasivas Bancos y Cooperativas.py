@@ -156,6 +156,25 @@ def cargar_datos_excel(url):
   return pd.read_excel(excel_file, sheet_name=None, header=None)
 
 
+def limpiar_texto_encabezado(texto):
+  t = str(texto).strip()
+  # Eliminación de texto redundante como "PERSONAS NATURALES Y JURIDICAS NO FINANCIERAS"
+  t = re.sub(
+      r"PERSONAS\s+NATURALES\s+Y\s+JURÍDICAS\s+NO\s+FINANCIERAS",
+      "",
+      t,
+      flags=re.IGNORECASE,
+  ).strip()
+  t = re.sub(
+      r"PERSONAS\s+NATURALES\s+Y\s+JURIDICAS\s+NO\s+FINANCIERAS",
+      "",
+      t,
+      flags=re.IGNORECASE,
+  ).strip()
+  t = re.sub(r"\s+", " ", t).strip()
+  return t
+
+
 def detectar_unidad_primera_columna(header_original, rows):
   h_str = str(header_original).strip()
 
@@ -236,7 +255,7 @@ def extraer_subtablas(df_raw):
     titulo = titulos[0] if titulos else "TABLA DE DATOS"
     headers = [
         (
-            str(df_raw.iloc[1, c]).strip()
+            limpiar_texto_encabezado(df_raw.iloc[1, c])
             if pd.notna(df_raw.iloc[1, c])
             else f"Col {i+1}"
         )
