@@ -183,11 +183,14 @@ def detectar_unidad_primera_columna(header_original, rows):
   ):
     return h_str
 
+  h_upper = h_str.upper()
+  if "FECHA" in h_upper:
+    return h_str
+
   vals = [
       str(r[0]).strip().upper() for r in rows if len(r) > 0 and pd.notna(r[0])
   ]
   texto_unido = " ".join(vals)
-  h_upper = h_str.upper()
 
   if (
       "$" in texto_unido
@@ -413,7 +416,18 @@ def renderizar_tabla_html(subtabla):
 
 # Carga de datos
 datos_excel = cargar_datos_excel(URL_EXCEL_DRIVE)
-lista_instituciones = list(datos_excel.keys())
+
+# Mapeo para mostrar "Tasas Referenciales" en las opciones del selector
+mapa_instituciones = {}
+for sheet_name in datos_excel.keys():
+  display_name = (
+      "Tasas Referenciales"
+      if sheet_name == "Tasa Pasiva Referencial"
+      else sheet_name
+  )
+  mapa_instituciones[display_name] = sheet_name
+
+lista_instituciones = list(mapa_instituciones.keys())
 
 # Filtros de entrada
 institucion_seleccionada = st.selectbox(
@@ -428,14 +442,19 @@ producto_seleccionado = st.selectbox(
 )
 
 # Renderizado de tablas
-if institucion_seleccionada in datos_excel:
-  df_hoja = datos_excel[institucion_seleccionada]
+if institucion_seleccionada and institucion_seleccionada in mapa_instituciones:
+  sheet_real = mapa_instituciones[institucion_seleccionada]
+  df_hoja = datos_excel[sheet_real]
   subtablas = extraer_subtablas(df_hoja)
 
   tablas_filtradas = []
   for st_item in subtablas:
     tipo = clasificar_producto(st_item["titulo"])
-    if producto_seleccionado == "Todos" or producto_seleccionado == tipo:
+    if (
+        producto_seleccionado == "Todos"
+        or producto_seleccionado == tipo
+        or institucion_seleccionada == "Tasas Referenciales"
+    ):
       tablas_filtradas.append(st_item)
 
   if tablas_filtradas:
