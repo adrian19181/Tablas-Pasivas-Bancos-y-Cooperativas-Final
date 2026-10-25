@@ -5,7 +5,6 @@ import sys
 import pandas as pd
 import requests
 import streamlit as st
-import streamlit.components.v1 as components
 
 # Configuración inicial de la página
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
@@ -142,22 +141,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Inyección de JS para sobreescritura automática en campos de entrada
-components.html(
-    """
-    <script>
-    const doc = window.parent.document;
-    doc.addEventListener('focusin', (e) => {
-        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-            e.target.select();
-        }
-    });
-    </script>
-    """,
-    height=0,
-    width=0,
-)
-
 st.title("Tablas Pasivas Bancos y coopertivas")
 
 if st.button("🔄 Refrescar"):
@@ -258,7 +241,6 @@ def clasificar_producto(titulo):
 
 
 def formatear_encabezado(header_text):
-  # Mantiene los rangos numéricos indivisibles en una sola línea mediante un span no-separable
   header_text = re.sub(
       r"([\$\d\.,\w]+)\s*-\s*([\$\d\.,\w]+)",
       r'<span style="white-space: nowrap;">\1&#8209;\2</span>',
