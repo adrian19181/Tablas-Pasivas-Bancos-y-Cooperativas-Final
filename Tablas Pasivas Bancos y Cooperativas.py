@@ -427,7 +427,8 @@ for sheet_name in datos_excel.keys():
   )
   mapa_instituciones[display_name] = sheet_name
 
-lista_instituciones = list(mapa_instituciones.keys())
+# Ordenamiento alfabético explícito de la lista para visibilidad directa en la lista deplegable
+lista_instituciones = sorted(list(mapa_instituciones.keys()))
 
 # Filtros de entrada
 institucion_seleccionada = st.selectbox(
