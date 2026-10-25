@@ -9,7 +9,7 @@ import streamlit as st
 # Configuración inicial de la página
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-# Estilos CSS personalizados para tablas móviles con inmovilización 2D Sticky
+# Estilos CSS personalizados para tablas móviles con inmovilización 2D Sticky y ajuste de menú para teclado móvil
 st.markdown(
     """
     <style>
@@ -21,6 +21,18 @@ st.markdown(
         padding-bottom: 0rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
+    }
+
+    /* Ajuste de menú desplegable (selectbox) para teclados táctiles en pantalla móvil */
+    div[data-baseweb="popover"] {
+        z-index: 999999 !important;
+    }
+    div[data-baseweb="popover"] ul,
+    div[data-baseweb="popover"] div[role="listbox"],
+    ul[data-baseweb="menu"] {
+        max-height: 28vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
     
     /* Tarjeta y Contenedor de Tabla */
