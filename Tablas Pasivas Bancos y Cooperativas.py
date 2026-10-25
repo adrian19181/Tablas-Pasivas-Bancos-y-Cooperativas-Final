@@ -60,7 +60,7 @@ st.markdown(
         font-size: 12px;
     }
     
-    /* Encabezados Fijos (Sticky Top) */
+    /* Encabezados Fijos (Sticky Top) con ajuste multilínea (2-3 líneas) */
     table.custom-table th {
         position: sticky !important;
         top: 0 !important;
@@ -68,9 +68,12 @@ st.markdown(
         background-color: #334155 !important;
         color: #ffffff !important;
         font-weight: bold;
-        padding: 8px 10px;
+        padding: 8px 6px;
         text-align: center;
-        white-space: nowrap;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        min-width: 90px !important;
+        max-width: 110px !important;
         border-bottom: 1px solid #cbd5e1;
         border-right: 1px solid #cbd5e1;
     }
