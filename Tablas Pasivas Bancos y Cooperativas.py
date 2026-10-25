@@ -329,21 +329,34 @@ def extraer_subtablas(df_raw):
   return subtablas
 
 
-def clasificar_producto(titulo):
-  t_upper = titulo.upper()
+def clasificar_producto(subtabla):
+  titulo_upper = str(subtabla.get("titulo", "")).upper()
+  headers_upper = " ".join(
+      [str(h) for h in subtabla.get("headers", [])]
+  ).upper()
+  texto_completo = titulo_upper + " " + headers_upper
+
+  tipos = []
+
   kw_plazo = [
       "PLAZO",
       "PÓLIZA",
       "POLIZA",
+      "CERTIFICADO DE DEPÓSITO",
+      "CERTIFICADOS DE DEPÓSITO",
       "CERTIFICADO",
       "ACUMULACIÓN",
       "ACUMULACION",
       "INVERSION",
+      "INVERSIONES",
+      "DEP. A PLAZO",
   ]
   kw_prog = [
       "PROGRAMADO",
       "FLEXIAHORRO",
       "FONDO AHORRO",
+      "FONDOJEP",
+      "FONDO JEP",
       "METAHORRO",
       "FUTURO SEGURO",
       "CHANCHITO",
@@ -363,13 +376,34 @@ def clasificar_producto(titulo):
       "REFERENCIAL",
   ]
 
-  if any(k in t_upper for k in kw_plazo):
-    return "Plazos Fijos"
-  elif any(k in t_upper for k in kw_prog):
-    return "Ahorros Programados"
-  elif any(k in t_upper for k in kw_ahorro):
-    return "Cuentas de Ahorros"
-  return "Otros"
+  # Evaluamos Ahorro Programado (incluye FondoJEP y columnas específicas)
+  if any(k in texto_completo for k in kw_prog):
+    tipos.append("Ahorros Programados")
+
+  # Evaluamos Plazos Fijos
+  if any(k in titulo_upper for k in kw_plazo):
+    tipos.append("Plazos Fijos")
+
+  # Evaluamos Cuentas de Ahorros
+  if any(k in texto_completo for k in kw_ahorro):
+    es_plazo_puro = any(
+        k in titulo_upper
+        for k in [
+            "DEPÓSITO A PLAZO",
+            "DEPÓSITOS A PLAZO",
+            "PLAZO FIJO",
+            "PÓLIZA",
+            "POLIZA",
+            "CERTIFICADO",
+        ]
+    ) and not any(k in headers_upper for k in ["CTA", "CUENTA", "FONDOJEP"])
+    if not es_plazo_puro:
+      tipos.append("Cuentas de Ahorros")
+
+  if not tipos:
+    tipos.append("Otros")
+
+  return list(set(tipos))
 
 
 def formatear_encabezado(header_text):
@@ -450,10 +484,10 @@ if institucion_seleccionada and institucion_seleccionada in mapa_instituciones:
 
   tablas_filtradas = []
   for st_item in subtablas:
-    tipo = clasificar_producto(st_item["titulo"])
+    tipos = clasificar_producto(st_item)
     if (
         producto_seleccionado == "Todos"
-        or producto_seleccionado == tipo
+        or producto_seleccionado in tipos
         or institucion_seleccionada == "Tasas Referenciales"
     ):
       tablas_filtradas.append(st_item)
