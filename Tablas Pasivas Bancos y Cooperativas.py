@@ -565,6 +565,49 @@ def renderizar_tabla_html(subtabla):
     return html
 
 
+def generar_tabla_promedio_anual(subtabla):
+    rows = subtabla.get("rows", [])
+    datos_por_anio = {}
+
+    for r in rows:
+        if len(r) >= 2 and pd.notna(r[0]) and pd.notna(r[1]):
+            fecha_str = str(r[0]).strip()
+            m = re.search(r"\b(19\d\d|20\d\d)\b", fecha_str)
+            if m:
+                anio = m.group(1)
+                val_raw = r[1]
+                val_num = None
+                if isinstance(val_raw, (int, float)):
+                    val_num = val_raw * 100 if 0 < val_raw < 1 else val_raw
+                else:
+                    tasa_s = str(val_raw).strip().replace("%", "").replace(",", ".")
+                    try:
+                        v = float(tasa_s)
+                        val_num = v * 100 if (0 < v < 1 and "%" not in str(val_raw)) else v
+                    except ValueError:
+                        val_num = None
+
+                if val_num is not None:
+                    if anio not in datos_por_anio:
+                        datos_por_anio[anio] = []
+                    datos_por_anio[anio].append(val_num)
+
+    if not datos_por_anio:
+        return None
+
+    promedios_rows = []
+    for anio in sorted(datos_por_anio.keys()):
+        vals = datos_por_anio[anio]
+        prom = sum(vals) / len(vals)
+        promedios_rows.append([anio, f"{prom:.2f}%".replace(".", ",")])
+
+    return {
+        "titulo": "TASA PASIVA REFERENCIAL PROMEDIO ANUAL",
+        "headers": ["Fecha", "Tasa Promedio"],
+        "rows": promedios_rows,
+    }
+
+
 # Carga de datos
 datos_excel = cargar_datos_excel(URL_EXCEL_DRIVE)
 
@@ -615,6 +658,13 @@ if institucion_seleccionada and institucion_seleccionada in mapa_instituciones:
     if tablas_filtradas:
         for st_item in tablas_filtradas:
             st.markdown(renderizar_tabla_html(st_item), unsafe_allow_html=True)
+            if institucion_seleccionada == "Tasas Referenciales":
+                tabla_promedio = generar_tabla_promedio_anual(st_item)
+                if tabla_promedio:
+                    st.markdown(
+                        renderizar_tabla_html(tabla_promedio),
+                        unsafe_allow_html=True,
+                    )
     else:
         st.info("No se encontraron tablas para el tipo de producto seleccionado.")
 
