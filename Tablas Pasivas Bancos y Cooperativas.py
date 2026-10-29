@@ -501,7 +501,7 @@ def filtrar_columnas_subtabla(subtabla, producto_seleccionado):
     return subtabla
 
 
-def dividir_texto_inteligente(texto, limite=18):
+def dividir_texto_inteligente(texto, limite=7):
     if pd.isna(texto):
         return ""
     t = str(texto).strip()
@@ -509,7 +509,7 @@ def dividir_texto_inteligente(texto, limite=18):
         return ""
     if "<br>" in t or "<br/>" in t:
         return t
-    # Cálculo inteligente por número de caracteres
+    # Evaluación por umbral de caracteres (> 7 caracteres se divide en 2 líneas)
     if len(t) > limite:
         palabras = t.split()
         if len(palabras) > 1:
@@ -521,8 +521,8 @@ def dividir_texto_inteligente(texto, limite=18):
 
 
 def formatear_encabezado(header_text):
-    # Formato a dos líneas inteligente para encabezados
-    header_text = dividir_texto_inteligente(header_text, limite=12)
+    # Formato a dos líneas inteligente para encabezados con umbral > 7 caracteres
+    header_text = dividir_texto_inteligente(header_text, limite=7)
     header_text = re.sub(
         r"([\$\d\.,\w]+)\s*-\s*([\$\d\.,\w]+)",
         r'<span style="white-space: nowrap;">\1&#8209;\2</span>',
@@ -555,7 +555,7 @@ def renderizar_tabla_html(subtabla):
         html += f'<tr class="{row_class}">'
         for c_idx, val in enumerate(row):
             cell_val = str(val) if pd.notna(val) else ""
-            cell_val_fmt = dividir_texto_inteligente(cell_val, limite=18)
+            cell_val_fmt = dividir_texto_inteligente(cell_val, limite=7)
             if c_idx == 0:
                 html += f'<td class="lbl-sticky-col">{cell_val_fmt}</td>'
             else:
