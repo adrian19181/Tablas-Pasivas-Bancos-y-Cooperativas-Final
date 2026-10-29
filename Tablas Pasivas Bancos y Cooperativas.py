@@ -502,8 +502,12 @@ def filtrar_columnas_subtabla(subtabla, producto_seleccionado):
     return subtabla
 
 
-def dividir_encabezado_dos_lineas(texto):
+def dividir_texto_dos_lineas(texto):
+    if pd.isna(texto):
+        return ""
     t = str(texto).strip()
+    if not t or t == "nan":
+        return ""
     if "<br>" in t or "<br/>" in t:
         return t
     palabras = t.split()
@@ -517,7 +521,7 @@ def dividir_encabezado_dos_lineas(texto):
 
 def formatear_encabezado(header_text):
     # Formato a dos líneas
-    header_text = dividir_encabezado_dos_lineas(header_text)
+    header_text = dividir_texto_dos_lineas(header_text)
     header_text = re.sub(
         r"([\$\d\.,\w]+)\s*-\s*([\$\d\.,\w]+)",
         r'<span style="white-space: nowrap;">\1&#8209;\2</span>',
@@ -550,10 +554,11 @@ def renderizar_tabla_html(subtabla):
         html += f'<tr class="{row_class}">'
         for c_idx, val in enumerate(row):
             cell_val = str(val) if pd.notna(val) else ""
+            cell_val_fmt = dividir_texto_dos_lineas(cell_val)
             if c_idx == 0:
-                html += f'<td class="lbl-sticky-col">{cell_val}</td>'
+                html += f'<td class="lbl-sticky-col">{cell_val_fmt}</td>'
             else:
-                html += f"<td>{cell_val}</td>"
+                html += f"<td>{cell_val_fmt}</td>"
         html += "</tr>"
     html += "</tbody></table></div></div>"
     return html
