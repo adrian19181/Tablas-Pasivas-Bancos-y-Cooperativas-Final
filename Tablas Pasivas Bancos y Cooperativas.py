@@ -555,7 +555,7 @@ def renderizar_tabla_html(subtabla):
             else:
                 html += f"<td>{cell_val}</td>"
         html += "</tr>"
-    html += "</tbody></table>div></div>"
+    html += "</tbody></table></div></div>"
     return html
 
 
