@@ -63,7 +63,7 @@ st.markdown(
         margin: 0px !important;
     }
     
-    /* Tabla Base */
+    /* Tabla Base - Ancho inteligente según el contenido */
     table.custom-table {
         border-collapse: separate;
         border-spacing: 0;
@@ -82,10 +82,9 @@ st.markdown(
         background-color: #334155 !important;
         color: #ffffff !important;
         font-weight: bold;
-        padding: 8px 8px;
+        padding: 8px 12px;
         text-align: center;
-        white-space: normal !important;
-        word-break: normal !important;
+        white-space: nowrap !important;
         width: auto !important;
         min-width: max-content !important;
         border-bottom: 1px solid #cbd5e1;
@@ -101,7 +100,7 @@ st.markdown(
         background-color: #1e293b !important;
         width: auto !important;
         min-width: max-content !important;
-        white-space: normal !important;
+        white-space: nowrap !important;
         text-align: center;
     }
     
@@ -109,7 +108,7 @@ st.markdown(
     table.custom-table td {
         position: static !important;
         z-index: auto !important;
-        padding: 7px 10px;
+        padding: 7px 12px;
         text-align: center;
         border-bottom: 1px solid #e2e8f0;
         border-right: 1px solid #e2e8f0;
@@ -502,7 +501,7 @@ def filtrar_columnas_subtabla(subtabla, producto_seleccionado):
     return subtabla
 
 
-def dividir_texto_dos_lineas(texto):
+def dividir_encabezado_dos_lineas(texto):
     if pd.isna(texto):
         return ""
     t = str(texto).strip()
@@ -521,7 +520,7 @@ def dividir_texto_dos_lineas(texto):
 
 def formatear_encabezado(header_text):
     # Formato a dos líneas
-    header_text = dividir_texto_dos_lineas(header_text)
+    header_text = dividir_encabezado_dos_lineas(header_text)
     header_text = re.sub(
         r"([\$\d\.,\w]+)\s*-\s*([\$\d\.,\w]+)",
         r'<span style="white-space: nowrap;">\1&#8209;\2</span>',
@@ -554,11 +553,10 @@ def renderizar_tabla_html(subtabla):
         html += f'<tr class="{row_class}">'
         for c_idx, val in enumerate(row):
             cell_val = str(val) if pd.notna(val) else ""
-            cell_val_fmt = dividir_texto_dos_lineas(cell_val)
             if c_idx == 0:
-                html += f'<td class="lbl-sticky-col">{cell_val_fmt}</td>'
+                html += f'<td class="lbl-sticky-col">{cell_val}</td>'
             else:
-                html += f"<td>{cell_val_fmt}</td>"
+                html += f"<td>{cell_val}</td>"
         html += "</tr>"
     html += "</tbody></table></div></div>"
     return html
