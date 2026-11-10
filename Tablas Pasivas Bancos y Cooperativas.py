@@ -5,6 +5,10 @@ import sys
 import pandas as pd
 import requests
 import streamlit as st
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 # Configuración inicial de la página
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
@@ -155,9 +159,6 @@ st.markdown(
 
 st.title("Tablas Pasivas Bancos y coopertivas")
 
-if st.button("🔄 Refrescar"):
-    st.rerun()
-
 URL_EXCEL_DRIVE = "https://docs.google.com/spreadsheets/d/1kiwAirOeaVEYxOdRP3FWB2xH-IewYOcx/export?format=xlsx"
 
 
@@ -166,6 +167,158 @@ def cargar_datos_excel(url):
     response = requests.get(url)
     excel_file = io.BytesIO(response.content)
     return pd.read_excel(excel_file, sheet_name=None, header=None)
+
+
+def generar_pdf(institucion_nombre, producto_nombre, tablas_list):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36,
+    )
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "DocTitle",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=16,
+        leading=20,
+        textColor=colors.HexColor("#0F172A"),
+        alignment=1,
+        spaceAfter=6,
+    )
+
+    sub_title_style = ParagraphStyle(
+        "DocSubTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#475569"),
+        alignment=1,
+        spaceAfter=12,
+    )
+
+    h2_style = ParagraphStyle(
+        "SectionHeading",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=14,
+        textColor=colors.HexColor("#0F172A"),
+        spaceBefore=10,
+        spaceAfter=6,
+    )
+
+    cell_style = ParagraphStyle(
+        "CellText",
+        fontName="Helvetica",
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#000000"),
+        alignment=1,
+    )
+
+    cell_bold = ParagraphStyle(
+        "CellBold",
+        fontName="Helvetica-Bold",
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#000000"),
+        alignment=0,
+    )
+
+    header_style = ParagraphStyle(
+        "HeaderStyle",
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        textColor=colors.white,
+        alignment=1,
+    )
+
+    story = []
+
+    story.append(Paragraph("Tablas Pasivas Bancos y Cooperativas", title_style))
+    story.append(
+        Paragraph(
+            f"<b>Institución:</b> {institucion_nombre} &nbsp;|&nbsp; <b>Producto:</b> {producto_nombre} &nbsp;|&nbsp; <b>Generado:</b> {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}",
+            sub_title_style,
+        )
+    )
+    story.append(Spacer(1, 4))
+
+    if not tablas_list:
+        story.append(Paragraph("No hay tablas para mostrar.", cell_style))
+    else:
+        for st_item in tablas_list:
+            titulo = st_item.get("titulo", "Tabla de Datos")
+            headers = st_item.get("headers", [])
+            rows = st_item.get("rows", [])
+
+            story.append(Paragraph(titulo, h2_style))
+            story.append(
+                HRFlowable(
+                    width="100%",
+                    thickness=1,
+                    color=colors.HexColor("#1E293B"),
+                    spaceBefore=2,
+                    spaceAfter=6,
+                )
+            )
+
+            if headers and rows:
+                table_data = []
+                h_row = []
+                for h in headers:
+                    h_clean = str(h).replace("<br>", " ").replace("<br/>", " ")
+                    h_clean = re.sub(r"<[^>]+>", "", h_clean)
+                    h_row.append(Paragraph(f"<b>{h_clean}</b>", header_style))
+                table_data.append(h_row)
+
+                for r in rows:
+                    r_row = []
+                    for c_idx, val in enumerate(r):
+                        v_str = str(val) if pd.notna(val) else ""
+                        v_clean = (
+                            v_str.replace("<br>", " ").replace("<br/>", " ")
+                        )
+                        v_clean = re.sub(r"<[^>]+>", "", v_clean)
+                        style_to_use = cell_bold if c_idx == 0 else cell_style
+                        r_row.append(Paragraph(v_clean, style_to_use))
+                    table_data.append(r_row)
+
+                num_cols = len(headers)
+                col_w = 540.0 / num_cols if num_cols > 0 else 540.0
+                t_table = Table(table_data, colWidths=[col_w] * num_cols)
+                t_style = [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#334155")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+
+                for r_idx in range(1, len(table_data)):
+                    bg = (
+                        colors.HexColor("#F8FAFC")
+                        if r_idx % 2 == 1
+                        else colors.white
+                    )
+                    t_style.append(("BACKGROUND", (0, r_idx), (-1, r_idx), bg))
+
+                t_table.setStyle(TableStyle(t_style))
+                story.append(t_table)
+                story.append(Spacer(1, 10))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 def limpiar_texto_encabezado(texto):
@@ -636,13 +789,12 @@ producto_seleccionado = st.selectbox(
     options=["Todos", "Plazos Fijos", "Ahorros Programados", "Cuentas de Ahorros"],
 )
 
-# Renderizado de tablas
+tablas_filtradas = []
 if institucion_seleccionada and institucion_seleccionada in mapa_instituciones:
     sheet_real = mapa_instituciones[institucion_seleccionada]
     df_hoja = datos_excel[sheet_real]
     subtablas = extraer_subtablas(df_hoja)
 
-    tablas_filtradas = []
     for st_item in subtablas:
         tipos = clasificar_producto(st_item)
         if (
@@ -654,19 +806,35 @@ if institucion_seleccionada and institucion_seleccionada in mapa_instituciones:
                 st_item, producto_seleccionado
             )
             tablas_filtradas.append(subtabla_filtrada)
-
-    if tablas_filtradas:
-        for st_item in tablas_filtradas:
-            st.markdown(renderizar_tabla_html(st_item), unsafe_allow_html=True)
             if institucion_seleccionada == "Tasas Referenciales":
                 tabla_promedio = generar_tabla_promedio_anual(st_item)
                 if tabla_promedio:
-                    st.markdown(
-                        renderizar_tabla_html(tabla_promedio),
-                        unsafe_allow_html=True,
-                    )
-    else:
-        st.info("No se encontraron tablas para el tipo de producto seleccionado.")
+                    tablas_filtradas.append(tabla_promedio)
+
+# Botones de Acción (Refrescar / Exportar a PDF)
+col_act, col_pdf = st.columns(2)
+with col_act:
+    if st.button("🔄 Refrescar", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+with col_pdf:
+    pdf_bytes = generar_pdf(
+        institucion_seleccionada, producto_seleccionado, tablas_filtradas
+    )
+    st.download_button(
+        label="📄 Exportar a PDF",
+        data=pdf_bytes,
+        file_name="Tablas Pasivas.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+    )
+
+# Renderizado de tablas
+if tablas_filtradas:
+    for st_item in tablas_filtradas:
+        st.markdown(renderizar_tabla_html(st_item), unsafe_allow_html=True)
+else:
+    st.info("No se encontraron tablas para el tipo de producto seleccionado.")
 
 if __name__ == "__main__":
     if "streamlit" not in sys.argv[0]:
